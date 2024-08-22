@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  alphafold:
+    image: nvcr.io/nim/deepmind/alphafold2:1.0.0
+    runtime: nvidia
+    ports:
+      - "8081:8000"
+    volumes:
+      - ${ALPHAFOLD2_CACHE:-~/.cache/nim}:/opt/nim/.cache/
+    environment:
+      - NGC_CLI_API_KEY=${NGC_CLI_API_KEY:?Error NGC_CLI_API_KEY not set}
+
+  diffdock:
+    image: nvcr.io/nim/mit/diffdock:1.2.0
+    runtime: nvidia
+    ports:
+      - "8082:8000"
+    volumes:
+      - ${DIFFDOCK_CACHE:-~/.cache/nim}:/home/nvs/.cache/nim/models/
+
+    environment:
+      - NGC_CLI_API_KEY=${NGC_CLI_API_KEY:?Error NGC_CLI_API_KEY not set}
+      - NVIDIA_VISIBLE_DEVICES=${DIFFDOCK_VISIBLE_DEVICES:-0}
+
+  molmim:
+    image: nvcr.io/nim/nvidia/molmim:1.0.0
+    runtime: nvidia
+    ports:
+      - "8083:8000"
+    volumes:
+      - ${MOLMIM_CACHE:-~/.cache/nim}:/home/nvs/.cache/nim/models/
+    environment:
+      - NGC_CLI_API_KEY=${NGC_CLI_API_KEY:?Error NGC_CLI_API_KEY not set}
