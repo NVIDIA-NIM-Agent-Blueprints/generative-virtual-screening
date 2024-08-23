@@ -4,9 +4,9 @@
 
 The NVIDIA NIM Blueprint for generative virtual screening shows how generative AI and accelerated NIM microservices can be used to design optimized small molecules smarter and faster.
 
-## Getting started
+<hr>
 
-### Detailed Documentation
+### Get Started
 
 Please see the detailed documentation [here](https://nim-tme.gitlab-master-pages.nvidia.com/-/documentation/-/jobs/107747773/artifacts/_build/docs/bionemo/caddvs/latest/overview.html) for a detail guide on getting started with the generative virtual screening workflow.
 
