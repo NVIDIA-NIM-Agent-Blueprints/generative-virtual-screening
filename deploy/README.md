@@ -32,3 +32,13 @@ docker compose up
 ```
 
 You should see Docker pulling the containers, which can take up to several hours, depending on the speed of you internet connection.  Once the containers are pulled, they will start. It will take ~5 minutes to start the three NIMs.
+
+### Interacting with the NIMs
+
+The three NIMs are available on three different ports:
+
+- AlphaFold2: 8081
+- MolMIM: 8082
+- DiffDock: 8083
+
+For a complete example, navigate to the [src](../src) directory where you'll find a Jupyter notebook with a complete generative virtual screening pipeline.
