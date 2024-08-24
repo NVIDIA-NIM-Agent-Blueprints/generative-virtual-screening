@@ -7,7 +7,7 @@ services:
     ports:
       - "8081:8000"
     volumes:
-      - ${ALPHAFOLD2_CACHE:-~/.cache/nim}:/opt/nim/.cache/
+      - ${ALPHAFOLD2_CACHE:-~/.cache/nim/models}:/opt/nim/.cache/
     environment:
       - NGC_CLI_API_KEY=${NGC_CLI_API_KEY:?Error NGC_CLI_API_KEY not set}
 
