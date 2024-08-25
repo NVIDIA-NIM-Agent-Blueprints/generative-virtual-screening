@@ -23,6 +23,37 @@ Set an environment variable named `NGC_CLI_API_KEY` to your API Key.
 export NGC_CLI_API_KEY=$(cat ~/API_KEY)
 ```
 
+### Create Cache Directories
+
+You'll need to create at least one directory for model files, weights, and MSA databases.
+The simplest way to go is to do
+
+```
+mkdir -p ~/.cache/nim
+chmod -R 777 ~/.cache/nim
+```
+
+### Optional: Specify An Alternate Directory
+
+The protein sequence databases necessary for the MSA step in AlphaFold-2 require about 2 TB
+of disk space.  It can be useful to specify another file location for AlphaFold-2 that will 
+get used to store these files.  For example, if you had a larger filesystem at `/scratch`, 
+you might do:
+
+```
+mkdir -p /scratch/nim
+chmod -R 777 /scratch/nim
+```
+
+Then you would want to set the environment variables `$ALPHAFOLD2_CACHE`, `$DIFFDOCK_CACHE`, and `$MOLMIM_CACHE` as follows using the 
+example directory we just created.
+
+```
+export ALPHAFOLD2_CACHE='/scratch/nim'
+export DIFFDOCK_CACHE='/scratch/nim'
+export MOLMIM_CACHE='/scratch/nim'
+```
+
 ### Start Up The NIMs
 
 Starting the NIMs is as simple as running
