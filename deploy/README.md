@@ -35,7 +35,7 @@ chmod -R 777 ~/.cache/nim
 
 ### Optional: Specify An Alternate Directory
 
-The protein sequence databases necessary for the MSA step in AlphaFold-2 require about 2 TB
+The protein sequence databases necessary for the MSA step in AlphaFold-2 require about 500 GB
 of disk space.  It can be useful to specify another file location for AlphaFold-2 that will 
 get used to store these files.  For example, if you had a larger filesystem at `/scratch`, 
 you might do:
