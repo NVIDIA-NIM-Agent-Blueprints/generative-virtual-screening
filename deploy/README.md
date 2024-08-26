@@ -54,7 +54,7 @@ export DIFFDOCK_CACHE='/scratch/nim'
 export MOLMIM_CACHE='/scratch/nim'
 ```
 
-### Start Up The NIMs
+### Start Up the NIMs
 
 Starting the NIMs is as simple as running
 
@@ -63,6 +63,44 @@ docker compose up
 ```
 
 You should see Docker pulling the containers, which can take up to several hours, depending on the speed of you internet connection.  Once the containers are pulled, they will start. It will take ~5 minutes to start the three NIMs.
+
+### Check the Status of the NIMs
+
+Check **AlphaFold2** status:
+
+```bash
+curl localhost:8081/v1/health/ready
+```
+
+Example output:
+
+```bash
+{"status":"ready"}
+```
+
+Check **DiffDock** status:
+
+```bash
+curl localhost:8082/v1/health/ready
+```
+
+Example output:
+
+```bash
+true
+```
+
+Check **MolMIM** status:
+
+```
+curl localhost:8083/v1/health/ready
+```
+
+Example output:
+
+```bash
+{"status":"ready"}
+```
 
 ### Interacting with the NIMs
 
