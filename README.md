@@ -30,6 +30,5 @@ An example of how to call each generative virtual screening step is located in `
 
 ### Additional Documentation
 
-Additional documentation can be found on [docs.nvidia.com](https://nim-tme.gitlab-master-pages.nvidia.com/-/documentation/-/jobs/107747773/artifacts/_build/docs/bionemo/caddvs/latest/overview.html). See the following 
-
+Additional documentation can be found on [docs.nvidia.com](https://nim-docs-staging.s3.us-west-1.amazonaws.com/bionemo-caddvs/main/overview.html).
 
