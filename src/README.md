@@ -1,4 +1,4 @@
-### Generative Virtual Screening Blueprint
+### NIM Agent Blueprint for Generative Virtual Screening in Drug Discovery
 
 This directory contains a Jupyter notebook showing a complete example. Check out the
 [notebook](./generative-virtual-screening.ipynb) itself for more explanation of
