@@ -9,6 +9,7 @@ Use the following documentation to learn about the NVIDIA Generative Virtual Scr
 - [What's New](#whats-new)
 - [Get Started](#get-started)
 - [System Requirements](#system-requirements)
+- [OpenShift Deployment](#openshift-deployment)
 - [Additional Documentation](#additional-documentation)
 
 ## Overview
@@ -58,6 +59,28 @@ jupyter notebook
 ## Notebook
 
 An example of how to call each generative virtual screening step is located in `src/generative-virtual-screening.ipynb`.
+
+## OpenShift Deployment
+
+This Blueprint has been validated on Red Hat OpenShift AI. OpenShift support is built into the Helm chart behind an `openshift.enabled` flag — no separate scripts or directories required. When disabled (the default), vanilla Kubernetes deployments are completely unaffected.
+
+### Quick Start
+
+```bash
+helm install gvs ./generative-virtual-screening-chart \
+  -f generative-virtual-screening-chart/values.yaml \
+  -f generative-virtual-screening-chart/values-openshift.yaml \
+  --set imagePullSecret.secretName=ngc-registry-secret \
+  -n gvs --create-namespace
+```
+
+The OpenShift overlay:
+- Deploys NIMs via the **NIM Operator** (NIMCache + NIMService) instead of raw Deployments
+- Creates **OpenShift Routes** for external access
+- Adds a **custom SCC** for the MSA init container that requires root privileges
+- Switches storage from hostPath to **PVC with dynamic provisioning**
+
+For the full deployment runbook (prerequisites, verification, troubleshooting), see [`docs/deploy-openshift.md`](docs/deploy-openshift.md).
 
 ## Additional Documentation
 

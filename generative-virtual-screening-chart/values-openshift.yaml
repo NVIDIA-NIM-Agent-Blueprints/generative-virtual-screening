@@ -1,0 +1,299 @@
+# values-openshift.yaml — OpenShift overlay for Generative Virtual Screening.
+#
+# Usage:
+#   helm install gvs . \
+#     -f values.yaml \
+#     -f values-openshift.yaml \
+#     --set imagePullSecret.secretName=ngc-registry-secret \
+#     -n gvs
+#
+# This file enables OpenShift-specific resources (Routes, SCC, RoleBindings)
+# and switches from standard Deployments to NIM Operator managed services.
+# Cluster-specific values (namespace, NGC keys, storageClass) should be
+# passed via --set at install time.
+
+# ---------------------------------------------------------------------------
+# Shorten the chart fullname to avoid exceeding the 63-character DNS label
+# limit on auto-generated Route hostnames.
+# ---------------------------------------------------------------------------
+fullnameOverride: "gvs"
+
+# ---------------------------------------------------------------------------
+# Disable standard Deployments — NIM Operator manages the NIM lifecycle.
+# ---------------------------------------------------------------------------
+replicaCount: 0
+
+# ---------------------------------------------------------------------------
+# OpenShift features
+# ---------------------------------------------------------------------------
+openshift:
+  enabled: true
+
+  routes:
+    msa:
+      enabled: true
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+    openfold2:
+      enabled: true
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+    genmol:
+      enabled: true
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+    diffdock:
+      enabled: true
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+
+  # Creates a custom SCC (gvs-nim) that allows runAsUser: 0 for the MSA
+  # init container and skips recursive SELinux relabeling on large PVCs.
+  scc:
+    create: true
+
+# ---------------------------------------------------------------------------
+# Override service type — Routes handle external access on OpenShift.
+# ---------------------------------------------------------------------------
+service:
+  type: ClusterIP
+
+# ---------------------------------------------------------------------------
+# Persistence — OpenShift dynamic provisioning (no hostPath needed).
+# Adjust storageClass to match your cluster (e.g. "gp3-csi", "ocs-storagecluster-cephfs").
+# ---------------------------------------------------------------------------
+persistence:
+  volume:
+    type: "pvc"
+    pvc:
+      storageClass: "gp3-csi"
+      accessMode: ReadWriteOnce
+      size: 1.5Ti
+
+# ---------------------------------------------------------------------------
+# NIM Operator integration — each NIM gets a NIMCache + NIMService pair.
+# The NIM Operator handles model downloading, caching, and GPU scheduling.
+# Requires: NIM Operator installed, NGC image-pull and API secrets in namespace.
+# ---------------------------------------------------------------------------
+nimOperator:
+  msa-search:
+    enabled: true
+    replicas: 1
+    service:
+      name: "msa-search"
+    image:
+      repository: nvcr.io/nim/colabfold/msa-search
+      tag: "1.0"
+      pullPolicy: Always
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    storage:
+      pvc:
+        create: true
+        size: "1500Gi"
+        volumeAccessMode: ReadWriteOnce
+        storageClass: "gp3-csi"
+    nodeSelector: {}
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: g6-gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: p4-gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+    env:
+      - name: NIM_HTTP_API_PORT
+        value: "8000"
+      - name: NIM_GLOBAL_MAX_MSA_SEQUENCES
+        value: "100"
+      - name: NIM_DISABLE_GPU_SERVER
+        value: "True"
+      - name: TOKENIZERS_PARALLELISM
+        value: "false"
+    expose:
+      service:
+        name: http
+        type: ClusterIP
+        port: 8000
+    startupProbe:
+      enabled: true
+      probe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 1410
+
+  openfold2:
+    enabled: true
+    replicas: 1
+    service:
+      name: "openfold2"
+    image:
+      repository: nvcr.io/nim/openfold/openfold2
+      tag: "1.0"
+      pullPolicy: Always
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    storage:
+      pvc:
+        create: true
+        size: "500Gi"
+        volumeAccessMode: ReadWriteOnce
+        storageClass: "gp3-csi"
+    nodeSelector: {}
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: g6-gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: p4-gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+    env:
+      - name: NIM_HTTP_API_PORT
+        value: "8000"
+      - name: TOKENIZERS_PARALLELISM
+        value: "false"
+    expose:
+      service:
+        name: http
+        type: ClusterIP
+        port: 8000
+    startupProbe:
+      enabled: true
+      probe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 330
+
+  genmol:
+    enabled: true
+    replicas: 1
+    service:
+      name: "genmol"
+    image:
+      repository: nvcr.io/nim/nvidia/genmol
+      tag: "1.0"
+      pullPolicy: Always
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    storage:
+      pvc:
+        create: true
+        size: "100Gi"
+        volumeAccessMode: ReadWriteOnce
+        storageClass: ""
+    nodeSelector: {}
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: g6-gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: p4-gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+    env:
+      - name: NIM_HTTP_API_PORT
+        value: "8000"
+      - name: TOKENIZERS_PARALLELISM
+        value: "false"
+    expose:
+      service:
+        name: http
+        type: ClusterIP
+        port: 8000
+    startupProbe:
+      enabled: true
+      probe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 150
+
+  diffdock:
+    enabled: true
+    replicas: 1
+    service:
+      name: "diffdock"
+    image:
+      repository: nvcr.io/nim/mit/diffdock
+      tag: "2.2"
+      pullPolicy: Always
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    storage:
+      pvc:
+        create: true
+        size: "100Gi"
+        volumeAccessMode: ReadWriteOnce
+        storageClass: ""
+    nodeSelector: {}
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: g6-gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: p4-gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+    env:
+      - name: NIM_HTTP_API_PORT
+        value: "8000"
+      - name: DD_USE_BF16
+        value: "1"
+      - name: TOKENIZERS_PARALLELISM
+        value: "false"
+    expose:
+      service:
+        name: http
+        type: ClusterIP
+        port: 8000
+    startupProbe:
+      enabled: true
+      probe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 240
