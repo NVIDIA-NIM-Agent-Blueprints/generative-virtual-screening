@@ -150,4 +150,239 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
- 
+
+# ---------------------------------------------------------------------------
+# OpenShift support (disabled by default — zero impact on vanilla Kubernetes)
+# ---------------------------------------------------------------------------
+openshift:
+  enabled: false
+
+  routes:
+    msa:
+      enabled: false
+      host: ""
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+    openfold2:
+      enabled: false
+      host: ""
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+    genmol:
+      enabled: false
+      host: ""
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+    diffdock:
+      enabled: false
+      host: ""
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+
+  # Creates a custom SCC for pods that need elevated privileges.
+  # The MSA init container requires runAsUser: 0 for volume permissions,
+  # which is blocked by OpenShift's default restricted SCC.
+  scc:
+    create: false
+    priority: 10
+
+# ---------------------------------------------------------------------------
+# NGC API secret used by the NIM Operator for model downloads.
+# Must contain a key named NGC_API_KEY.
+# ---------------------------------------------------------------------------
+ngcApiSecret:
+  name: "ngc-api"
+
+# ---------------------------------------------------------------------------
+# NIM Operator integration (disabled by default).
+# When enabled AND the NIM Operator CRD is present on the cluster, NIMCache +
+# NIMService resources are created instead of raw Deployments.
+# Set replicaCount: 0 in your overlay to disable the standard Deployments.
+# ---------------------------------------------------------------------------
+nimOperator:
+  msa-search:
+    enabled: false
+    replicas: 1
+    service:
+      name: "msa-search"
+    image:
+      repository: nvcr.io/nim/colabfold/msa-search
+      tag: "1.0"
+      pullPolicy: Always
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    storage:
+      pvc:
+        create: true
+        size: "1500Gi"
+        volumeAccessMode: ReadWriteOnce
+        storageClass: ""
+    nodeSelector: {}
+    tolerations: []
+    env:
+      - name: NIM_HTTP_API_PORT
+        value: "8000"
+      - name: NIM_CACHE_PATH
+        value: "/opt/nim/.cache"
+      - name: NIM_GLOBAL_MAX_MSA_SEQUENCES
+        value: "100"
+      - name: NIM_DISABLE_GPU_SERVER
+        value: "True"
+      - name: TOKENIZERS_PARALLELISM
+        value: "false"
+    expose:
+      service:
+        name: http
+        type: ClusterIP
+        port: 8000
+    startupProbe:
+      enabled: true
+      probe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 1410
+
+  openfold2:
+    enabled: false
+    replicas: 1
+    service:
+      name: "openfold2"
+    image:
+      repository: nvcr.io/nim/openfold/openfold2
+      tag: "1.0"
+      pullPolicy: Always
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    storage:
+      pvc:
+        create: true
+        size: "500Gi"
+        volumeAccessMode: ReadWriteOnce
+        storageClass: ""
+    nodeSelector: {}
+    tolerations: []
+    env:
+      - name: NIM_HTTP_API_PORT
+        value: "8000"
+      - name: NIM_CACHE_EXTERNAL
+        value: "/opt/nim/.cache"
+      - name: TOKENIZERS_PARALLELISM
+        value: "false"
+    expose:
+      service:
+        name: http
+        type: ClusterIP
+        port: 8000
+    startupProbe:
+      enabled: true
+      probe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 330
+
+  genmol:
+    enabled: false
+    replicas: 1
+    service:
+      name: "genmol"
+    image:
+      repository: nvcr.io/nim/nvidia/genmol
+      tag: "1.0"
+      pullPolicy: Always
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    storage:
+      pvc:
+        create: true
+        size: "100Gi"
+        volumeAccessMode: ReadWriteOnce
+        storageClass: ""
+    nodeSelector: {}
+    tolerations: []
+    env:
+      - name: NIM_HTTP_API_PORT
+        value: "8000"
+      - name: NIM_CACHE_PATH
+        value: "/opt/nim/.cache"
+      - name: TOKENIZERS_PARALLELISM
+        value: "false"
+    expose:
+      service:
+        name: http
+        type: ClusterIP
+        port: 8000
+    startupProbe:
+      enabled: true
+      probe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 150
+
+  diffdock:
+    enabled: false
+    replicas: 1
+    service:
+      name: "diffdock"
+    image:
+      repository: nvcr.io/nim/mit/diffdock
+      tag: "2.0"
+      pullPolicy: Always
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    storage:
+      pvc:
+        create: true
+        size: "100Gi"
+        volumeAccessMode: ReadWriteOnce
+        storageClass: ""
+    nodeSelector: {}
+    tolerations: []
+    env:
+      - name: NIM_HTTP_API_PORT
+        value: "8000"
+      - name: NIM_CACHE_PATH
+        value: "/opt/nim/.cache"
+      - name: DD_USE_BF16
+        value: "1"
+      - name: TOKENIZERS_PARALLELISM
+        value: "false"
+    expose:
+      service:
+        name: http
+        type: ClusterIP
+        port: 8000
+    startupProbe:
+      enabled: true
+      probe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 240
+

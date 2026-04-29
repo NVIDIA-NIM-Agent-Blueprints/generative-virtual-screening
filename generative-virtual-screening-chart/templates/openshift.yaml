@@ -1,0 +1,121 @@
+{{- if .Values.openshift.enabled }}
+{{- $fullName := include "generative-virtual-screening-chart.fullname" . }}
+{{- $routes := .Values.openshift.routes | default dict }}
+{{- $services := list "msa" "openfold2" "genmol" "diffdock" }}
+
+{{- range $serviceName := $services }}
+{{- $routeConfig := dict }}
+{{- if hasKey $routes $serviceName }}
+{{- $routeConfig = index $routes $serviceName }}
+{{- end }}
+{{- if (default false $routeConfig.enabled) }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $fullName }}-{{ $serviceName }}
+  labels:
+    {{- include "generative-virtual-screening-chart.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $serviceName }}
+spec:
+  {{- if $routeConfig.host }}
+  host: {{ $routeConfig.host }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ $fullName }}-{{ $serviceName }}
+  port:
+    targetPort: {{ $serviceName }}-port
+  {{- with $routeConfig.tls }}
+  tls:
+    termination: {{ .termination | default "edge" }}
+    {{- if .insecureEdgeTerminationPolicy }}
+    insecureEdgeTerminationPolicy: {{ .insecureEdgeTerminationPolicy }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.openshift.scc.create }}
+---
+# Custom SCC: allows runAsUser: 0 for the MSA init container and skips
+# recursive SELinux relabeling on large NIM model PVCs.
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: {{ $fullName }}-nim
+  labels:
+    {{- include "generative-virtual-screening-chart.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/description: >-
+      Custom SCC for the Generative Virtual Screening NIM pods.
+      Allows runAsUser 0 (needed by the MSA init container) and skips
+      recursive SELinux relabeling on mounted volumes.
+priority: {{ .Values.openshift.scc.priority | default 20 }}
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: false
+allowedCapabilities: null
+defaultAddCapabilities: null
+fsGroup:
+  type: RunAsAny
+readOnlyRootFilesystem: false
+requiredDropCapabilities:
+  - KILL
+  - MKNOD
+  - SETUID
+  - SETGID
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+users:
+  - system:serviceaccount:{{ .Release.Namespace }}:default
+  - system:serviceaccount:{{ .Release.Namespace }}:nim-cache-sa
+  {{- range $nimKey, $nimVal := .Values.nimOperator }}
+  {{- if and (kindIs "map" $nimVal) (hasKey $nimVal "service") }}
+  - system:serviceaccount:{{ $.Release.Namespace }}:{{ $nimVal.service.name }}
+  {{- end }}
+  {{- end }}
+volumes:
+  - configMap
+  - csi
+  - downwardAPI
+  - emptyDir
+  - ephemeral
+  - persistentVolumeClaim
+  - projected
+  - secret
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullName }}-nim-scc
+  labels:
+    {{- include "generative-virtual-screening-chart.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:{{ $fullName }}-nim
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: {{ .Release.Namespace }}
+  - kind: ServiceAccount
+    name: nim-cache-sa
+    namespace: {{ .Release.Namespace }}
+  {{- range $nimKey, $nimVal := .Values.nimOperator }}
+  {{- if and (kindIs "map" $nimVal) (hasKey $nimVal "service") }}
+  - kind: ServiceAccount
+    name: {{ $nimVal.service.name }}
+    namespace: {{ $.Release.Namespace }}
+  {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
